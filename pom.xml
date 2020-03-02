@@ -11,15 +11,14 @@
 	<packaging>jar</packaging>
 		
 	<name>multiclipboard</name>
-	
-	<prerequisites>
-		<maven>3.6.2</maven>
-	</prerequisites>
 
 	<properties>
+		<maven.version>3.6.3</maven.version>
 		<jdk.version>11</jdk.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.main.class>app.qbity.clipregister.Main</project.main.class>
 		<org.apache.maven.plugins.maven-compiler-plugin.version>3.8.1</org.apache.maven.plugins.maven-compiler-plugin.version>
+		<org.apache.maven.plugins.maven-enforcer-plugin.version>3.0.0-M3</org.apache.maven.plugins.maven-enforcer-plugin.version>
 		<org.codehaus.mojo.versions-maven-plugin.version>2.7</org.codehaus.mojo.versions-maven-plugin.version>
 		<org.apache.maven.plugins.maven-assembly-plugin.version>3.1.1</org.apache.maven.plugins.maven-assembly-plugin.version>
 		
@@ -27,7 +26,7 @@
 		<private.repo.release.url>http://maven.yildizkabaran.com/artifactory/libs-release-local</private.repo.release.url>
 		
 		<com.1stleg.jnativehook.version>2.1.0</com.1stleg.jnativehook.version>
-		<com.yildizkabaran.util.version>1.3.8</com.yildizkabaran.util.version>
+		<com.yildizkabaran.util.version>1.4.2</com.yildizkabaran.util.version>
 	</properties>
 	
 	<dependencies>
@@ -70,6 +69,31 @@
 			</plugin>
 			
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>${org.apache.maven.plugins.maven-enforcer-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>enforce</id>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<banDuplicatePomDependencyVersions/>
+								<requireMavenVersion>
+									<version>${maven.version}</version>
+								</requireMavenVersion>
+								<requireJavaVersion>
+									<version>${jdk.version}</version>
+								</requireJavaVersion>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			
+			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>versions-maven-plugin</artifactId>
 				<version>${org.codehaus.mojo.versions-maven-plugin.version}</version>
@@ -88,7 +112,7 @@
 						<configuration>
 							<archive>
 								<manifest>
-									<mainClass>app.qbity.clipregister.Main</mainClass>
+									<mainClass>${project.main.class}</mainClass>
 								</manifest>
 							</archive>
 							<descriptorRefs>

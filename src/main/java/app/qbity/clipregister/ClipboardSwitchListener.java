@@ -2,81 +2,71 @@ package app.qbity.clipregister;
 
 import com.yildizkabaran.util.log.ILogger;
 import com.yildizkabaran.util.log.LogUtil;
+import java.awt.AWTException;
+import java.awt.Image;
+import java.awt.SystemTray;
+import java.awt.Toolkit;
+import java.awt.TrayIcon;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.Transferable;
 import org.jnativehook.keyboard.NativeKeyEvent;
+import org.jnativehook.keyboard.NativeKeyListener;
 
-public class ClipboardSwitchListener extends KeyCombination {
+public class ClipboardSwitchListener {
 
 	private static final ILogger LOGGER = LogUtil.getLogger(ClipboardSwitchListener.class);
+	private static final int NUM_REGISTERS = 4;
 
-	private boolean isPrimed = false;
-	private int currSelection = 1;
+	private int currSelection = 0;
+	private final KeyCombinationListener keyCombinationListener;
+	private final TrayIcon trayIcon;
+	private final Clipboard clipboard;
+	private final Transferable[] registers;
 
 	public ClipboardSwitchListener() {
-		super(new int[]{NativeKeyEvent.VC_CONTROL, NativeKeyEvent.VC_ALT, NativeKeyEvent.VC_C});
+		this.keyCombinationListener = new KeyCombinationListener();
+
+		Image image = Toolkit.getDefaultToolkit().createImage("icon.png");
+		this.trayIcon = new TrayIcon(image, "ClipRegister");
+		this.trayIcon.setImageAutoSize(true);
+		this.trayIcon.setToolTip("Current clipboard number");
+		try {
+			SystemTray.getSystemTray().add(this.trayIcon);
+		} catch (AWTException ex) {
+			LOGGER.error(ex);
+		}
+
+		this.clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+		this.registers = new Transferable[NUM_REGISTERS];
+
+		for (int i = 0; i < NUM_REGISTERS; i++) {
+			int clipNum = i;
+			KeyCombination keyCombination = new KeyCombination(new int[]{NativeKeyEvent.VC_CONTROL, NativeKeyEvent.VC_ALT, NativeKeyEvent.VC_SHIFT, NativeKeyEvent.VC_F1 + i}) {
+				@Override
+				public void onDetected() {
+					switchToClipboard(clipNum);
+				}
+			};
+			this.keyCombinationListener.listenFor(keyCombination);
+		}
 	}
 
-	@Override
-	public boolean onKeyDown(int keyCode) {
-		boolean handled = super.onKeyDown(keyCode);
-		if (handled) {
-			return handled;
-		}
-		if (!this.isPrimed) {
-			return handled;
-		}
-		this.isPrimed = false;
+	public NativeKeyListener getNativeKeyListener() {
+		return this.keyCombinationListener;
+	}
 
-		int newSelection = this.currSelection;
-		switch (keyCode) {
-			case NativeKeyEvent.VC_0:
-				newSelection = 0;
-				break;
-			case NativeKeyEvent.VC_1:
-				newSelection = 1;
-				break;
-			case NativeKeyEvent.VC_2:
-				newSelection = 2;
-				break;
-			case NativeKeyEvent.VC_3:
-				newSelection = 3;
-				break;
-			case NativeKeyEvent.VC_4:
-				newSelection = 4;
-				break;
-			case NativeKeyEvent.VC_5:
-				newSelection = 5;
-				break;
-			case NativeKeyEvent.VC_6:
-				newSelection = 6;
-				break;
-			case NativeKeyEvent.VC_7:
-				newSelection = 7;
-				break;
-			case NativeKeyEvent.VC_8:
-				newSelection = 8;
-				break;
-			case NativeKeyEvent.VC_9:
-				newSelection = 9;
-				break;
-		}
-
-		if (newSelection == this.currSelection) {
-			return handled;
-		}
-
+	private void switchToClipboard(int newSelection) {
 		int oldSelection = this.currSelection;
 		this.currSelection = newSelection;
-		this.onClipboardChanged(oldSelection, newSelection);
-		return true;
+		this.onChanged(oldSelection, newSelection);
 	}
 
-	@Override
-	public void onDetected() {
-		this.isPrimed = true;
-		LOGGER.info("primed");
-	}
-
-	public void onClipboardChanged(int oldSelection, int newSelection) {
-
+	public void onChanged(int oldSelection, int newSelection) {
+		LOGGER.info("onClipboardChanged from {0,number,#} to {1,number,#}", oldSelection, newSelection);
+		this.registers[oldSelection] = this.clipboard.getContents(null);
+		if (registers[newSelection] != null) {
+			this.clipboard.setContents(this.registers[newSelection], null);
+		}
+		this.trayIcon.displayMessage("Clipboard #" + newSelection, null, TrayIcon.MessageType.INFO);
 	}
 }
